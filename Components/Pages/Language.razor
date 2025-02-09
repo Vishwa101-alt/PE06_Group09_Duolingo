@@ -21,17 +21,16 @@
                     <h3>@course.CourseName</h3>
                     <label>Duration: @course.CourseDuration</label>
                     <label>Price: @course.CoursePrice</label>
-                    @if (enrolledCourses.ContainsKey(course.CourseId) && enrolledCourses[course.CourseId] < 100)
+
+                    @if (enrolledCourses.ContainsKey(course.CourseId))
                     {
                         <button @onclick="() => ContinueCourse(course)">Continue</button>
-                    }
-                    else if (!enrolledCourses.ContainsKey(course.CourseId))
-                    {
-                        <button @onclick="() => EnrollInCourse(course)">Enroll</button>
+                        <button class="quit-btn" @onclick="() => QuitCourse(course)">Quit</button>
+                        <p>Progress: @enrolledCourses[course.CourseId]%</p>
                     }
                     else
                     {
-                        <button disabled>Completed</button>
+                        <button @onclick="() => EnrollInCourse(course)">Enroll</button>
                     }
                 </div>
             }
@@ -62,32 +61,33 @@
     private bool showEnrollPopup = false;
     private Course? selectedCourse;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        courses = await context.Course.ToListAsync();
+        await LoadUserData();
+    }
+
+    private async Task LoadUserData()
     {
         try
         {
-            if (firstRender)
+            var result = await ProtectedLocalStorage.GetAsync<int>("user-id");
+            UserID = result.Success ? result.Value : 0;
+
+            if (UserID > 0)
             {
-                var result = await ProtectedLocalStorage.GetAsync<int>("user-id");
-                UserID = result.Success ? result.Value : 0;
-                if (UserID > 0)
+                using var context = DbFactory.CreateDbContext();
+                var userAcc = await context.UserAcc.Include(u => u.Courses)
+                                                   .FirstOrDefaultAsync(u => u.UserAccId == UserID);
+                if (userAcc != null)
                 {
-                    using var context = DbFactory.CreateDbContext();
-                    var userAcc = await context.UserAcc.Include(u => u.Courses).FirstOrDefaultAsync(m => m.UserAccId == UserID);
-                    if (userAcc is not null)
+                    isAuthenticated = true;
+                    var userProfile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == userAcc.UserProfileId);
+                    if (userProfile is not null)
                     {
-                        isAuthenticated = true;
-                        var userProfile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == userAcc.UserProfileId);
-                        if (userProfile is not null)
-                        {
-                            currentPoint = userProfile.CurrentPoints ?? 0;
-                            enrolledCourses = userAcc.Courses.ToDictionary(c => c.CourseId, c => c.CompletionPercentage ?? 0);
-                        }
-                        StateHasChanged();
-                    }
-                    else
-                    {
-                        await LogoutUser();
+                        currentPoint = userProfile.CurrentPoints ?? 0;
+                        enrolledCourses = userAcc.Courses.ToDictionary(c => c.CourseId, c => c.CompletionPercentage ?? 0);
                     }
                 }
                 else
@@ -95,18 +95,16 @@
                     await LogoutUser();
                 }
             }
+            else
+            {
+                await LogoutUser();
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Unexpected error: {ex.Message}");
             await LogoutUser();
         }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        using var context = DbFactory.CreateDbContext();
-        courses = await context.Course.ToListAsync();
     }
 
     private void EnrollInCourse(Course course)
@@ -132,7 +130,7 @@
             {
                 userAcc.Courses.Add(selectedCourse);
                 await context.SaveChangesAsync();
-                enrolledCourses[selectedCourse.CourseId] = 0; // New course starts at 0%
+                enrolledCourses[selectedCourse.CourseId] = 0;
                 await JSRuntime.InvokeAsync<Task>("alert", "Enrollment successful!");
             }
         }
@@ -151,11 +149,52 @@
             await JSRuntime.InvokeVoidAsync("alert", "You have already completed this course.");
         }
     }
-
     private async Task LogoutUser()
     {
         await ProtectedLocalStorage.DeleteAsync("user-id");
         await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
         NavigationManager.NavigateTo("/signin");
+    }
+    private async Task QuitCourse(Course course)
+    {
+        bool confirmQuit = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to quit {course.CourseName}? Your progress will be lost.");
+
+        if (confirmQuit)
+        {
+            using var context = DbFactory.CreateDbContext();
+            var userAcc = await context.UserAcc.Include(u => u.Courses)
+                                               .FirstOrDefaultAsync(u => u.UserAccId == UserID);
+            if (userAcc is not null)
+            {
+                var courseToRemove = userAcc.Courses.FirstOrDefault(c => c.CourseId == course.CourseId);
+                if (courseToRemove is not null)
+                {
+                    userAcc.Courses.Remove(courseToRemove);
+                    await context.SaveChangesAsync();
+                    enrolledCourses.Remove(course.CourseId);
+                    await JSRuntime.InvokeAsync<Task>("alert", "You have quit the course.");
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+
+    public async Task UpdateCourseProgress(int courseId)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var userAcc = await context.UserAcc.Include(u => u.Courses)
+                                           .FirstOrDefaultAsync(u => u.UserAccId == UserID);
+        if (userAcc is not null)
+        {
+            var course = userAcc.Courses.FirstOrDefault(c => c.CourseId == courseId);
+            if (course is not null)
+            {
+                course.CompletionPercentage = 100; // Set to 100% upon questionnaire completion
+                enrolledCourses[courseId] = course.CompletionPercentage.Value;
+                await context.SaveChangesAsync();
+            }
+        }
+        StateHasChanged();
     }
 }
