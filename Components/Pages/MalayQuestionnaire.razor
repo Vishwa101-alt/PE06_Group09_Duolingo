@@ -1,4 +1,4 @@
-﻿@page "/malayquestionnaire"
+﻿@page "/malaylanguagecoursequestionnaire"
 @using Microsoft.EntityFrameworkCore
 @using FSDProject.Domain
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
@@ -13,8 +13,8 @@
     var currentQuestion = storeItems[currentQuestionIndex];
     <div class="questionnaire-container">
         <div class="points-display">
-            <span class="points-label">Current Points:</span>
-            <span class="points-value">@currentPoint</span>
+            <span class="points-label">Points Earned:</span>
+            <span class="points-value">@earnedPoints</span>
         </div>
 
         <div class="question-card">
@@ -36,7 +36,11 @@ else
 {
     <p>You've completed the questionnaire!</p>
     <p>Your Score: @correctAnswers out of @storeItems.Count questions correct.</p>
-    <p>Total Points: @currentPoint</p>
+    <p>Total Points Earned: @earnedPoints</p>
+    <p>Username: @username</p>
+    <p>Course Name: @courseName</p>
+
+    @* insert data of user id, course id, score, how many right, how many wrong, reward. *@
 }
 
 @code {
@@ -46,6 +50,9 @@ else
     private int currentPoint = 0;
     private int currentQuestionIndex = 0;
     private int correctAnswers = 0; // Track correct answers
+    private int earnedPoints => correctAnswers * 20; // Points only for correct answers
+    private string username = string.Empty;
+    private string courseName = string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -65,6 +72,7 @@ else
                     if (userProfile is not null)
                     {
                         currentPoint = userProfile.CurrentPoints ?? 0;
+                        username = userAcc.Username; // Fetch the username
                     }
                     StateHasChanged();
                 }
@@ -91,8 +99,15 @@ else
     {
         using var context = DbFactory.CreateDbContext();
         storeItems = await context.StoreItem
-            .Where(item => item.CourseDatabaseId == 3) // Assuming CourseDatabaseId 1 is for English
+            .Where(item => item.CourseDatabaseId == 3) // Assuming CourseDatabaseId 3 is for Malay
             .ToListAsync();
+
+        // Fetch the course name based on CourseDatabaseId
+        var course = await context.Course.FirstOrDefaultAsync(c => c.CourseId == 3); // Assuming CourseId 3 is for Malay
+        if (course != null)
+        {
+            courseName = course.CourseName;
+        }
     }
 
     private async Task AnswerQuestion(StoreItem item, int selectedOption)
@@ -107,7 +122,7 @@ else
                 var userProfile = await context.UserProfile.FirstOrDefaultAsync(up => up.UserProfileId == userAcc.UserProfileId);
                 if (userProfile is not null)
                 {
-                    userProfile.CurrentPoints += 20; // Award 20 points for each correct answer
+                    userProfile.CurrentPoints = currentPoint + earnedPoints; // Update user points
                     await context.SaveChangesAsync();
                     currentPoint = userProfile.CurrentPoints ?? 0;
                     await JSRuntime.InvokeAsync<Task>("alert", "Correct answer! Points awarded.");
@@ -124,4 +139,3 @@ else
         StateHasChanged();
     }
 }
-

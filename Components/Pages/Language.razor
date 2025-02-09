@@ -21,7 +21,18 @@
                     <h3>@course.CourseName</h3>
                     <label>Duration: @course.CourseDuration</label>
                     <label>Price: @course.CoursePrice</label>
-                    <button @onclick="() => EnrollInCourse(course)">Enroll</button>
+                    @if (enrolledCourses.ContainsKey(course.CourseId) && enrolledCourses[course.CourseId] < 100)
+                    {
+                        <button @onclick="() => ContinueCourse(course)">Continue</button>
+                    }
+                    else if (!enrolledCourses.ContainsKey(course.CourseId))
+                    {
+                        <button @onclick="() => EnrollInCourse(course)">Enroll</button>
+                    }
+                    else
+                    {
+                        <button disabled>Completed</button>
+                    }
                 </div>
             }
         </div>
@@ -44,6 +55,7 @@
 
 @code {
     private List<Course> courses = new();
+    private Dictionary<int, int> enrolledCourses = new(); // CourseId -> CompletionPercentage
     private int UserID = 0;
     private bool isAuthenticated = false;
     private int currentPoint = 0;
@@ -61,38 +73,33 @@
                 if (UserID > 0)
                 {
                     using var context = DbFactory.CreateDbContext();
-                    UserAcc? userAcc = await context.UserAcc.FirstOrDefaultAsync(m => m.UserAccId == UserID);
+                    var userAcc = await context.UserAcc.Include(u => u.Courses).FirstOrDefaultAsync(m => m.UserAccId == UserID);
                     if (userAcc is not null)
                     {
                         isAuthenticated = true;
-                        UserProfile? userProfile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == userAcc.UserProfileId);
+                        var userProfile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == userAcc.UserProfileId);
                         if (userProfile is not null)
                         {
                             currentPoint = userProfile.CurrentPoints ?? 0;
+                            enrolledCourses = userAcc.Courses.ToDictionary(c => c.CourseId, c => c.CompletionPercentage ?? 0);
                         }
                         StateHasChanged();
                     }
                     else
                     {
-                        await ProtectedLocalStorage.DeleteAsync("user-id");
-                        await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
-                        NavigationManager.NavigateTo("/signin");
+                        await LogoutUser();
                     }
                 }
                 else
                 {
-                    await ProtectedLocalStorage.DeleteAsync("user-id");
-                    await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
-                    NavigationManager.NavigateTo("/signin");
+                    await LogoutUser();
                 }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Unexpected error: {ex.Message}");
-            await ProtectedLocalStorage.DeleteAsync("user-id");
-            await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
-            NavigationManager.NavigateTo("/signin");
+            await LogoutUser();
         }
     }
 
@@ -105,34 +112,6 @@
     private void EnrollInCourse(Course course)
     {
         selectedCourse = course;
-        if (selectedCourse?.CourseName == "English language course")
-        {
-            // Show the popup first instead of navigating directly
-            showEnrollPopup = true;
-            StateHasChanged();
-            return;
-        }
-        else if(selectedCourse?.CourseName == "Burmese language course")
-        {
-            // Show the popup first instead of navigating directly
-            showEnrollPopup = true;
-            StateHasChanged();
-            return;
-        }
-        else if (selectedCourse?.CourseName == "Malay language course")
-        {
-            // Show the popup first instead of navigating directly
-            showEnrollPopup = true;
-            StateHasChanged();
-            return;
-        }
-        else if (selectedCourse?.CourseName == "Hindi language course")
-        {
-            // Show the popup first instead of navigating directly
-            showEnrollPopup = true;
-            StateHasChanged();
-            return;
-        }
         showEnrollPopup = true;
         StateHasChanged();
     }
@@ -148,42 +127,35 @@
         if (selectedCourse is not null)
         {
             using var context = DbFactory.CreateDbContext();
-
-            var userAcc = await context.UserAcc.FirstOrDefaultAsync(u => u.UserAccId == UserID);
-            if (userAcc is not null)
+            var userAcc = await context.UserAcc.Include(u => u.Courses).FirstOrDefaultAsync(u => u.UserAccId == UserID);
+            if (userAcc is not null && !enrolledCourses.ContainsKey(selectedCourse.CourseId))
             {
-                var userProfile = await context.UserProfile.FirstOrDefaultAsync(up => up.UserProfileId == userAcc.UserProfileId);
-                if (userProfile is not null)
-                {
-                    // Add logic to handle enrollment, e.g., adding the course to the user's profile
-                    await JSRuntime.InvokeAsync<Task>("alert", "Enrollment successful!");
-
-                    // Navigate to the English questionnaire page only after confirmation
-                    if (selectedCourse.CourseName == "English language course")
-                    {
-                        NavigationManager.NavigateTo("/englishquestionnaire");
-                    }
-                    else if (selectedCourse.CourseName == "Burmese language course")
-                    {
-                        NavigationManager.NavigateTo("/burmesequestionnaire");
-                    }
-                    else if (selectedCourse.CourseName == "Malay language course")
-                    {
-                        NavigationManager.NavigateTo("/malayquestionnaire");
-                    }
-                    else if (selectedCourse.CourseName == "Hindi language course")
-                    {
-                        NavigationManager.NavigateTo("/hindiquestionnaire");
-                    }
-                }
-                else
-                {
-                    await JSRuntime.InvokeAsync<Task>("alert", "Enrollment failed.");
-                }
+                userAcc.Courses.Add(selectedCourse);
+                await context.SaveChangesAsync();
+                enrolledCourses[selectedCourse.CourseId] = 0; // New course starts at 0%
+                await JSRuntime.InvokeAsync<Task>("alert", "Enrollment successful!");
             }
         }
-
         showEnrollPopup = false;
         StateHasChanged();
+    }
+
+    private async Task ContinueCourse(Course course)
+    {
+        if (enrolledCourses.TryGetValue(course.CourseId, out int completionPercentage) && completionPercentage < 100)
+        {
+            NavigationManager.NavigateTo($"/{course.CourseName.ToLower().Replace(" ", "")}questionnaire");
+        }
+        else if (completionPercentage >= 100)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "You have already completed this course.");
+        }
+    }
+
+    private async Task LogoutUser()
+    {
+        await ProtectedLocalStorage.DeleteAsync("user-id");
+        await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+        NavigationManager.NavigateTo("/signin");
     }
 }

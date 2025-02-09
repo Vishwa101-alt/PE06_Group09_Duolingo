@@ -1,4 +1,4 @@
-﻿@page "/hindiquestionnaire"
+﻿@page "/hindilanguagecoursequestionnaire"
 @using Microsoft.EntityFrameworkCore
 @using FSDProject.Domain
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
@@ -13,8 +13,8 @@
     var currentQuestion = storeItems[currentQuestionIndex];
     <div class="questionnaire-container">
         <div class="points-display">
-            <span class="points-label">Current Points:</span>
-            <span class="points-value">@currentPoint</span>
+            <span class="points-label">Points Earned:</span>
+            <span class="points-value">@earnedPoints</span>
         </div>
 
         <div class="question-card">
@@ -36,7 +36,7 @@ else
 {
     <p>You've completed the questionnaire!</p>
     <p>Your Score: @correctAnswers out of @storeItems.Count questions correct.</p>
-    <p>Total Points: @currentPoint</p>
+    <p>Total Points Earned: @earnedPoints</p>
 }
 
 @code {
@@ -46,6 +46,7 @@ else
     private int currentPoint = 0;
     private int currentQuestionIndex = 0;
     private int correctAnswers = 0; // Track correct answers
+    private int earnedPoints => correctAnswers * 20; // Points only for correct answers
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -107,7 +108,7 @@ else
                 var userProfile = await context.UserProfile.FirstOrDefaultAsync(up => up.UserProfileId == userAcc.UserProfileId);
                 if (userProfile is not null)
                 {
-                    userProfile.CurrentPoints += 20; // Award 20 points for each correct answer
+                    userProfile.CurrentPoints = currentPoint + earnedPoints; // Update user points
                     await context.SaveChangesAsync();
                     currentPoint = userProfile.CurrentPoints ?? 0;
                     await JSRuntime.InvokeAsync<Task>("alert", "Correct answer! Points awarded.");
@@ -124,4 +125,3 @@ else
         StateHasChanged();
     }
 }
-
