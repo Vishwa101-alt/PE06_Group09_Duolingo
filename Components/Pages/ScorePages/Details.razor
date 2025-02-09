@@ -1,0 +1,50 @@
+﻿@page "/scores/details"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>Score</h2>
+    <hr />
+    @if (score is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">PointsAwarded</dt>
+            <dd class="col-sm-10">@score.PointsAwarded</dd>
+            <dt class="col-sm-2">StoreId</dt>
+            <dd class="col-sm-10">@score.StoreId</dd>
+            <dt class="col-sm-2">UserProfileId</dt>
+            <dd class="col-sm-10">@score.UserProfileId</dd>
+        </dl>
+        <div>
+            <a href="@($"/scores/edit?scoreid={score.ScoreId}")">Edit</a> |
+            <a href="@($"/scores")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private Score? score;
+
+    [SupplyParameterFromQuery]
+    private int ScoreId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        score = await context.Score.FirstOrDefaultAsync(m => m.ScoreId == ScoreId);
+
+        if (score is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

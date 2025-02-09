@@ -1,0 +1,48 @@
+﻿@page "/rewardshops/details"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>RewardShop</h2>
+    <hr />
+    @if (rewardshop is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">RewardType</dt>
+            <dd class="col-sm-10">@rewardshop.RewardType</dd>
+            <dt class="col-sm-2">PointCost</dt>
+            <dd class="col-sm-10">@rewardshop.PointCost</dd>
+        </dl>
+        <div>
+            <a href="@($"/rewardshops/edit?rewardshopid={rewardshop.RewardShopId}")">Edit</a> |
+            <a href="@($"/rewardshops")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private RewardShop? rewardshop;
+
+    [SupplyParameterFromQuery]
+    private int RewardShopId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        rewardshop = await context.RewardShop.FirstOrDefaultAsync(m => m.RewardShopId == RewardShopId);
+
+        if (rewardshop is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

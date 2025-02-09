@@ -1,0 +1,80 @@
+﻿@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@inject NavigationManager NavigationManager
+@inject ProtectedLocalStorage ProtectedLocalStorage
+
+<div class="nav-menu">
+	<a class="custom-nav-link @GetActiveClass("dashboard")" href="dashboard">
+		<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff">
+			<path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z" />
+		</svg>
+		<span>Home</span>
+	</a>
+	<a class="custom-nav-link @GetActiveClass("aboutus")" href="aboutus">
+		<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff">
+			<path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z" />
+		</svg>
+		<span>About Us</span>
+	</a>
+	<a class="custom-nav-link @GetActiveClass("languages")" href="languages">
+		<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff">
+			<path d="M280-120v-80h160v-124q-49-11-87.5-41.5T296-442q-75-9-125.5-65.5T120-640v-40q0-33 23.5-56.5T200-760h80v-80h400v80h80q33 0 56.5 23.5T840-680v40q0 76-50.5 132.5T664-442q-18 46-56.5 76.5T520-324v124h160v80H280Zm0-408v-152h-80v40q0 38 22 68.5t58 43.5Zm200 128q50 0 85-35t35-85v-240H360v240q0 50 35 85t85 35Zm200-128q36-13 58-43.5t22-68.5v-40h-80v152Zm-200-52Z" />
+		</svg>
+		<span>Courses</span>
+	</a>
+
+	<a class="custom-nav-link @GetActiveClass("reward")" href="reward">
+		<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff">
+			<path d="M240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h480q33 0 56.5 23.5T800-800v640q0 33-23.5 56.5T720-80H240Zm0-80h480v-640h-80v320l-120-60-120 60v-320H240v640Zm120-400 120-60 120 60-120-60-120 60Zm-120 80v-320 320Z" />
+		</svg>
+		<span>Reward</span>
+	</a>
+	<a class="custom-nav-link @GetActiveClass("profile")" href="profile">
+		<svg xmlns="http://www.w3.org/2000/svg" height="24px" width="24px" fill="#ffffff" viewBox="0 0 24 24">
+			<path d="M12 12c2.67 0 8 1.34 8 4v2c0 .55-.45 1-1 1H5c-.55 0-1-.45-1-1v-2c0-2.66 5.33-4 8-4zm0-2c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
+		</svg>
+		<span>UserProfile</span>
+	</a>
+
+
+	<button class="sign-out" @onclick="SignOut">
+		<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff">
+			<path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z" />
+		</svg>
+		<span>Sign Out</span>
+	</button>
+</div>
+
+@code {
+	private String? currentURL;
+
+	private async Task SignOut()
+	{
+		await ProtectedLocalStorage.DeleteAsync("user-id");
+		NavigationManager.NavigateTo("/");
+	}
+
+	protected override void OnInitialized()
+	{
+		currentURL = NavigationManager.Uri;
+		NavigationManager.LocationChanged += HandleLocationChanged;
+	}
+
+	private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+	{
+		currentURL = e.Location;
+		StateHasChanged(); // Trigger UI update
+	}
+
+	private string GetActiveClass(string href)
+	{
+		return currentURL?.EndsWith(href, StringComparison.OrdinalIgnoreCase) == true ? "active" : "";
+	}
+
+	public void Dispose()
+	{
+		NavigationManager.LocationChanged -= HandleLocationChanged;
+	}
+}

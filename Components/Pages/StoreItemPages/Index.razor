@@ -1,0 +1,42 @@
+﻿@page "/storeitems"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FSDProject.Domain
+@using FSDProject.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="storeitems/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.StoreItem">
+    <PropertyColumn Property="storeitem => storeitem.Questions" />
+    <PropertyColumn Property="storeitem => storeitem.MultipleChoice1" />
+    <PropertyColumn Property="storeitem => storeitem.MultipleChoice2" />
+    <PropertyColumn Property="storeitem => storeitem.MultipleChoice3" />
+    <PropertyColumn Property="storeitem => storeitem.MultipleChoice4" />
+    <PropertyColumn Property="storeitem => storeitem.Answer" />
+    <PropertyColumn Property="storeitem => storeitem.CourseDatabaseId" />
+
+    <TemplateColumn Context="storeitem">
+        <a href="@($"storeitems/edit?storeitemid={storeitem.StoreItemId}")">Edit</a> |
+        <a href="@($"storeitems/details?storeitemid={storeitem.StoreItemId}")">Details</a> |
+        <a href="@($"storeitems/delete?storeitemid={storeitem.StoreItemId}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private FSDProjectContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

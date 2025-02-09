@@ -1,0 +1,189 @@
+﻿@page "/languages"
+
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@inject ProtectedLocalStorage ProtectedLocalStorage
+@inject IJSRuntime JSRuntime
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@if (isAuthenticated)
+{
+    <div class="languages-wrapper">
+        <label style="font-size: 14px; align-self: end; margin-right: 20px; color: grey;">Current Point: @currentPoint</label>
+        <h1>Language Courses</h1>
+        <div class="languages">
+            @foreach (var course in courses)
+            {
+                <div class="language-item">
+                    <h3>@course.CourseName</h3>
+                    <label>Duration: @course.CourseDuration</label>
+                    <label>Price: @course.CoursePrice</label>
+                    <button @onclick="() => EnrollInCourse(course)">Enroll</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (showEnrollPopup)
+{
+    <div class="modal-overlay">
+        <div class="modal-wrapper">
+            <h3>Confirm Enrollment</h3>
+            <p>Are you sure you want to enroll in <strong>@selectedCourse?.CourseName</strong>?</p>
+            <div class="modal-buttons">
+                <button class="confirm-btn" @onclick="ConfirmEnrollment">Yes, Enroll</button>
+                <button class="cancel-btn" @onclick="CloseEnrollPopup">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Course> courses = new();
+    private int UserID = 0;
+    private bool isAuthenticated = false;
+    private int currentPoint = 0;
+    private bool showEnrollPopup = false;
+    private Course? selectedCourse;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                var result = await ProtectedLocalStorage.GetAsync<int>("user-id");
+                UserID = result.Success ? result.Value : 0;
+                if (UserID > 0)
+                {
+                    using var context = DbFactory.CreateDbContext();
+                    UserAcc? userAcc = await context.UserAcc.FirstOrDefaultAsync(m => m.UserAccId == UserID);
+                    if (userAcc is not null)
+                    {
+                        isAuthenticated = true;
+                        UserProfile? userProfile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == userAcc.UserProfileId);
+                        if (userProfile is not null)
+                        {
+                            currentPoint = userProfile.CurrentPoints ?? 0;
+                        }
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        await ProtectedLocalStorage.DeleteAsync("user-id");
+                        await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+                        NavigationManager.NavigateTo("/signin");
+                    }
+                }
+                else
+                {
+                    await ProtectedLocalStorage.DeleteAsync("user-id");
+                    await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+                    NavigationManager.NavigateTo("/signin");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+            await ProtectedLocalStorage.DeleteAsync("user-id");
+            await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+            NavigationManager.NavigateTo("/signin");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        courses = await context.Course.ToListAsync();
+    }
+
+    private void EnrollInCourse(Course course)
+    {
+        selectedCourse = course;
+        if (selectedCourse?.CourseName == "English language course")
+        {
+            // Show the popup first instead of navigating directly
+            showEnrollPopup = true;
+            StateHasChanged();
+            return;
+        }
+        else if(selectedCourse?.CourseName == "Burmese language course")
+        {
+            // Show the popup first instead of navigating directly
+            showEnrollPopup = true;
+            StateHasChanged();
+            return;
+        }
+        else if (selectedCourse?.CourseName == "Malay language course")
+        {
+            // Show the popup first instead of navigating directly
+            showEnrollPopup = true;
+            StateHasChanged();
+            return;
+        }
+        else if (selectedCourse?.CourseName == "Hindi language course")
+        {
+            // Show the popup first instead of navigating directly
+            showEnrollPopup = true;
+            StateHasChanged();
+            return;
+        }
+        showEnrollPopup = true;
+        StateHasChanged();
+    }
+
+    private void CloseEnrollPopup()
+    {
+        showEnrollPopup = false;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmEnrollment()
+    {
+        if (selectedCourse is not null)
+        {
+            using var context = DbFactory.CreateDbContext();
+
+            var userAcc = await context.UserAcc.FirstOrDefaultAsync(u => u.UserAccId == UserID);
+            if (userAcc is not null)
+            {
+                var userProfile = await context.UserProfile.FirstOrDefaultAsync(up => up.UserProfileId == userAcc.UserProfileId);
+                if (userProfile is not null)
+                {
+                    // Add logic to handle enrollment, e.g., adding the course to the user's profile
+                    await JSRuntime.InvokeAsync<Task>("alert", "Enrollment successful!");
+
+                    // Navigate to the English questionnaire page only after confirmation
+                    if (selectedCourse.CourseName == "English language course")
+                    {
+                        NavigationManager.NavigateTo("/englishquestionnaire");
+                    }
+                    else if (selectedCourse.CourseName == "Burmese language course")
+                    {
+                        NavigationManager.NavigateTo("/burmesequestionnaire");
+                    }
+                    else if (selectedCourse.CourseName == "Malay language course")
+                    {
+                        NavigationManager.NavigateTo("/malayquestionnaire");
+                    }
+                    else if (selectedCourse.CourseName == "Hindi language course")
+                    {
+                        NavigationManager.NavigateTo("/hindiquestionnaire");
+                    }
+                }
+                else
+                {
+                    await JSRuntime.InvokeAsync<Task>("alert", "Enrollment failed.");
+                }
+            }
+        }
+
+        showEnrollPopup = false;
+        StateHasChanged();
+    }
+}

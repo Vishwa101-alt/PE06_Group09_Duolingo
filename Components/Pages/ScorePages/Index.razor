@@ -1,0 +1,38 @@
+﻿@page "/scores"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FSDProject.Domain
+@using FSDProject.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="scores/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.Score">
+    <PropertyColumn Property="score => score.PointsAwarded" />
+    <PropertyColumn Property="score => score.StoreId" />
+    <PropertyColumn Property="score => score.UserProfileId" />
+
+    <TemplateColumn Context="score">
+        <a href="@($"scores/edit?scoreid={score.ScoreId}")">Edit</a> |
+        <a href="@($"scores/details?scoreid={score.ScoreId}")">Details</a> |
+        <a href="@($"scores/delete?scoreid={score.ScoreId}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private FSDProjectContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

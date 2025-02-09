@@ -1,0 +1,46 @@
+﻿@page "/coursedatabases/details"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>CourseDatabase</h2>
+    <hr />
+    @if (coursedatabase is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">LanguageName</dt>
+            <dd class="col-sm-10">@coursedatabase.LanguageName</dd>
+        </dl>
+        <div>
+            <a href="@($"/coursedatabases/edit?coursedatabaseid={coursedatabase.CourseDatabaseId}")">Edit</a> |
+            <a href="@($"/coursedatabases")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private CourseDatabase? coursedatabase;
+
+    [SupplyParameterFromQuery]
+    private int CourseDatabaseId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        coursedatabase = await context.CourseDatabase.FirstOrDefaultAsync(m => m.CourseDatabaseId == CourseDatabaseId);
+
+        if (coursedatabase is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

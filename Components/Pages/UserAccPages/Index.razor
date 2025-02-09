@@ -1,0 +1,39 @@
+﻿@page "/useraccs"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FSDProject.Domain
+@using FSDProject.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="useraccs/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.UserAcc">
+    <PropertyColumn Property="useracc => useracc.Username" />
+    <PropertyColumn Property="useracc => useracc.Password" />
+    <PropertyColumn Property="useracc => useracc.Email" />
+    <PropertyColumn Property="useracc => useracc.UserProfileId" />
+
+    <TemplateColumn Context="useracc">
+        <a href="@($"useraccs/edit?useraccid={useracc.UserAccId}")">Edit</a> |
+        <a href="@($"useraccs/details?useraccid={useracc.UserAccId}")">Details</a> |
+        <a href="@($"useraccs/delete?useraccid={useracc.UserAccId}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private FSDProjectContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

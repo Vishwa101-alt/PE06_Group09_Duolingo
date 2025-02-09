@@ -1,0 +1,49 @@
+﻿@page "/rewardshops/create"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>RewardShop</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="RewardShop" OnValidSubmit="AddRewardShop" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="rewardtype" class="form-label">RewardType:</label> 
+                <InputText id="rewardtype" @bind-Value="RewardShop.RewardType" class="form-control" /> 
+                <ValidationMessage For="() => RewardShop.RewardType" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="pointcost" class="form-label">PointCost:</label> 
+                <InputText id="pointcost" @bind-Value="RewardShop.PointCost" class="form-control" /> 
+                <ValidationMessage For="() => RewardShop.PointCost" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/rewardshops">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private RewardShop RewardShop { get; set; } = new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddRewardShop()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.RewardShop.Add(RewardShop);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/rewardshops");
+    }
+}

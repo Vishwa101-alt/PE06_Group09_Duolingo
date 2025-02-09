@@ -1,0 +1,37 @@
+﻿@page "/rewardshops"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FSDProject.Domain
+@using FSDProject.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="rewardshops/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.RewardShop">
+    <PropertyColumn Property="rewardshop => rewardshop.RewardType" />
+    <PropertyColumn Property="rewardshop => rewardshop.PointCost" />
+
+    <TemplateColumn Context="rewardshop">
+        <a href="@($"rewardshops/edit?rewardshopid={rewardshop.RewardShopId}")">Edit</a> |
+        <a href="@($"rewardshops/details?rewardshopid={rewardshop.RewardShopId}")">Details</a> |
+        <a href="@($"rewardshops/delete?rewardshopid={rewardshop.RewardShopId}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private FSDProjectContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

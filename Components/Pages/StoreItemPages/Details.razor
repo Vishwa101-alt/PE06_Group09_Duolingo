@@ -1,0 +1,58 @@
+﻿@page "/storeitems/details"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>StoreItem</h2>
+    <hr />
+    @if (storeitem is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Questions</dt>
+            <dd class="col-sm-10">@storeitem.Questions</dd>
+            <dt class="col-sm-2">MultipleChoice</dt>
+            <dd class="col-sm-10">@storeitem.MultipleChoice1</dd>
+            <dt class="col-sm-2">MultipleChoice2</dt>
+            <dd class="col-sm-10">@storeitem.MultipleChoice2</dd>
+            <dt class="col-sm-2">MultipleChoice3</dt>
+            <dd class="col-sm-10">@storeitem.MultipleChoice3</dd>
+            <dt class="col-sm-2">MultipleChoice4</dt>
+            <dd class="col-sm-10">@storeitem.MultipleChoice4</dd>
+            <dt class="col-sm-2">Answer</dt>
+            <dd class="col-sm-10">@storeitem.Answer</dd>
+            <dt class="col-sm-2">CourseDatabaseId</dt>
+            <dd class="col-sm-10">@storeitem.CourseDatabaseId</dd>
+        </dl>
+        <div>
+            <a href="@($"/storeitems/edit?storeitemid={storeitem.StoreItemId}")">Edit</a> |
+            <a href="@($"/storeitems")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private StoreItem? storeitem;
+
+    [SupplyParameterFromQuery]
+    private int StoreItemId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        storeitem = await context.StoreItem.FirstOrDefaultAsync(m => m.StoreItemId == StoreItemId);
+
+        if (storeitem is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

@@ -1,0 +1,59 @@
+﻿@page "/useraccs/create"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>UserAcc</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="UserAcc" OnValidSubmit="AddUserAcc" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="username" class="form-label">Username:</label> 
+                <InputText id="username" @bind-Value="UserAcc.Username" class="form-control" /> 
+                <ValidationMessage For="() => UserAcc.Username" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="password" class="form-label">Password:</label> 
+                <InputText id="password" @bind-Value="UserAcc.Password" class="form-control" /> 
+                <ValidationMessage For="() => UserAcc.Password" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="email" class="form-label">Email:</label> 
+                <InputText id="email" @bind-Value="UserAcc.Email" class="form-control" /> 
+                <ValidationMessage For="() => UserAcc.Email" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="userprofileid" class="form-label">UserProfileId:</label> 
+                <InputNumber id="userprofileid" @bind-Value="UserAcc.UserProfileId" class="form-control" /> 
+                <ValidationMessage For="() => UserAcc.UserProfileId" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/useraccs">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private UserAcc UserAcc { get; set; } = new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddUserAcc()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.UserAcc.Add(UserAcc);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/useraccs");
+    }
+}

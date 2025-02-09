@@ -1,0 +1,107 @@
+﻿@page "/profile"
+
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@inject ProtectedLocalStorage ProtectedLocalStorage
+@inject IJSRuntime JSRuntime
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<h3>Profile</h3>
+
+@if (userProfile != null)
+{
+    <div class="profile-wrapper">
+        <h4>Hello, @userProfile.UserProfileId</h4>
+        <p>Current Points: <strong>@userProfile.CurrentPoints</strong></p>
+        <h5>Course Progress:</h5>
+        <ul>
+            @foreach (var courseStatus in courseStatuses)
+            {
+                <li>
+                    <strong>@courseStatus.CourseName:</strong> @courseStatus.CompletionPercentage% completed
+                    <button @onclick="() => EnrollInCourse(courseStatus)">Enroll Again</button>
+                </li>
+            }
+        </ul>
+    </div>
+}
+else
+{
+    <p>Loading profile...</p>
+}
+
+@code {
+    private UserProfile? userProfile;
+    private List<CourseStatus> courseStatuses = new();
+    private int UserID;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await ProtectedLocalStorage.GetAsync<int>("user-id");
+        UserID = result.Success ? result.Value : 0;
+
+        if (UserID > 0)
+        {
+            using var context = DbFactory.CreateDbContext();
+            var userAcc = await context.UserAcc.FirstOrDefaultAsync(u => u.UserAccId == UserID);
+            if (userAcc != null)
+            {
+                userProfile = await context.UserProfile.FirstOrDefaultAsync(up => up.UserProfileId == userAcc.UserProfileId);
+
+                if (userProfile != null)
+                {
+                    courseStatuses = await context.UserProfile
+                        .Where(up => up.UserProfileId == userProfile.UserProfileId)
+                        .Select(up => new CourseStatus
+                            {
+                                CourseName = up.Course.CourseName,
+                                CompletionPercentage = up.Course.CompletionPercentage
+                            })
+                        .ToListAsync();
+                }
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/signin");
+            }
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/signin");
+        }
+    }
+
+    private async Task EnrollInCourse(CourseStatus courseStatus)
+    {
+        if (courseStatus.CompletionPercentage < 100)
+        {
+            using var context = DbFactory.CreateDbContext();
+
+            var userCourse = await context.UserProfile
+                .Include(up => up.Course)
+                .FirstOrDefaultAsync(up => up.UserProfileId == userProfile.UserProfileId && up.Course.CourseName == courseStatus.CourseName);
+
+            if (userCourse != null)
+            {
+                userCourse.Course.CompletionPercentage = (byte)Math.Min((userCourse.Course.CompletionPercentage ?? 0) + 10, 100);
+                await context.SaveChangesAsync();
+                courseStatus.CompletionPercentage = userCourse.Course.CompletionPercentage;
+                StateHasChanged();
+                await JSRuntime.InvokeAsync<Task>("alert", "Enrollment successful! Progress updated.");
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeAsync<Task>("alert", "Course already completed!");
+        }
+    }
+
+    private class CourseStatus
+    {
+        public string CourseName { get; set; } = string.Empty;
+        public int? CompletionPercentage { get; set; }
+    }
+}

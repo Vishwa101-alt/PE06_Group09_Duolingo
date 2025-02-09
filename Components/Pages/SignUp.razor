@@ -1,0 +1,130 @@
+﻿@page "/signup"
+@layout PublicLayout
+@rendermode InteractiveServer
+
+
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Components.Layout
+@using System.ComponentModel.DataAnnotations
+@using FSDProject.Domain
+
+@inject IJSRuntime JSRuntime
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<div class="sign-up">
+	@if (errorMessage is not null)
+	{
+		<label class="error-message">@errorMessage</label>
+	}
+	<EditForm method="post" Model="signUpModel" FormName="SignUpForm" OnValidSubmit="HandleSubmit" Enhance>
+		<DataAnnotationsValidator />
+		<h2>Create New Account</h2>
+
+		<div class="form-item">
+			<label for="username">Username</label>
+			<InputText id="username" class="form-control" @bind-Value="signUpModel.Username" />
+			<ValidationMessage style="margin-top: 2px; font-size: 13px;" For="@(() => signUpModel.Username)" />
+		</div>
+
+		<div class="form-item">
+			<label for="email">Email</label>
+			<InputText id="email" class="form-control" @bind-Value="signUpModel.Email" />
+			<ValidationMessage style="margin-top: 2px; font-size: 13px;" For="@(() => signUpModel.Email)" />
+		</div>
+
+		<div class="form-item">
+			<label for="password">Password</label>
+			<InputText id="password" type="password" class="form-control" @bind-Value="signUpModel.Password" />
+			<ValidationMessage style="margin-top: 2px; font-size: 13px;" For="@(() => signUpModel.Password)" />
+		</div>
+
+		<div class="button-div">
+			<button type="submit" disabled="@isSubmitting">
+				@if (isSubmitting)
+				{
+					<div class="spinner-border" style="width: 1rem; height: 1rem;" role="status">
+					</div>
+				}
+				else
+				{
+					<span>Sign Up</span>
+				}
+			</button>
+		</div>
+	</EditForm>
+</div>
+
+@code {
+	private bool isSubmitting = false;
+	private string? errorMessage;
+
+	[SupplyParameterFromForm]
+	private SignUpModel signUpModel { get; set; } = new();
+
+	private async Task HandleSubmit()
+	{
+		isSubmitting = true;
+
+		try
+		{
+			using var context = DbFactory.CreateDbContext();
+			bool emailExists = await context.UserAcc.AnyAsync(u => u.Email == signUpModel.Email);
+			if (emailExists)
+			{
+				errorMessage = "Email already exists. Please use a different email";
+				return;
+			}
+
+			var newUserProfile = new UserProfile
+				{
+					CurrentPoints = 0,
+					Status = "0%"
+				};
+
+			context.UserProfile.Add(newUserProfile);
+			await context.SaveChangesAsync();
+
+			context.UserAcc.Add(new UserAcc
+				{
+					Email = signUpModel.Email,
+					Password = signUpModel.Password,
+					Username = signUpModel.Username,
+					UserProfileId = newUserProfile.UserProfileId
+				});
+			await context.SaveChangesAsync();
+
+			await JSRuntime.InvokeAsync<Task>("alert", "Your account is successfully created!");
+			NavigationManager.NavigateTo("/signin");
+		}
+		catch (DbUpdateException ex)
+		{
+			Console.WriteLine($"Database error: {ex.Message}");
+			errorMessage = "An error occurred while saving data. Please try again.";
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Unexpected error: {ex.Message}");
+			errorMessage = "An unexpected error occurred.";
+		}
+		finally
+		{
+			isSubmitting = false;
+		}
+	}
+
+	private class SignUpModel
+	{
+		[Required(ErrorMessage = "Username is required.")]
+		public string Username { get; set; } = string.Empty;
+
+		[Required(ErrorMessage = "Email is required.")]
+		[EmailAddress(ErrorMessage = "Invalid email format.")]
+		public string Email { get; set; } = string.Empty;
+
+		[Required(ErrorMessage = "Password is required.")]
+		[MinLength(8, ErrorMessage = "The password must have at least 8 characters.")]
+		[MaxLength(20, ErrorMessage = "The password must not exceed 20 characters.")]
+		public string Password { get; set; } = string.Empty;
+	}
+}

@@ -1,0 +1,39 @@
+﻿@page "/userprofiles"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FSDProject.Domain
+@using FSDProject.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="userprofiles/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.UserProfile">
+    <PropertyColumn Property="userprofile => userprofile.Status" />
+    <PropertyColumn Property="userprofile => userprofile.CurrentPoints" />
+    <PropertyColumn Property="userprofile => userprofile.RewardId" />
+    <PropertyColumn Property="userprofile => userprofile.CourseId" />
+
+    <TemplateColumn Context="userprofile">
+        <a href="@($"userprofiles/edit?userprofileid={userprofile.UserProfileId}")">Edit</a> |
+        <a href="@($"userprofiles/details?userprofileid={userprofile.UserProfileId}")">Details</a> |
+        <a href="@($"userprofiles/delete?userprofileid={userprofile.UserProfileId}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private FSDProjectContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

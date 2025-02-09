@@ -1,0 +1,113 @@
+﻿.reward-wrapper {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    margin-top: 20px;
+    padding: 0 20px;
+}
+
+    .reward-wrapper h1 {
+        font-size: 30px;
+        text-align: center;
+        font-weight: bold;
+    }
+
+.reward {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 40px;
+}
+
+.reward-item {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    height: 200px;
+    border-radius: 12px;
+    margin-bottom: 40px;
+    align-items: center;
+    box-shadow: 0 0 10px 1px #777;
+}
+
+    .reward-item h3 {
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        margin-top: 32px;
+    }
+
+    .reward-item label {
+        font-size: 16px;
+        margin-top: 12px;
+    }
+
+    .reward-item button {
+        margin-top: 20px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 0;
+        outline: 0;
+        background-color: green;
+        color: white;
+        transition: all .1s ease-in-out;
+        cursor: pointer;
+    }
+
+        .reward-item button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .reward-item button:not(:disabled):hover {
+            box-shadow: 0 0 2px 1px green;
+        }
+
+        .reward-item button:not(:disabled):active {
+            transform: translateY(3px);
+        }
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-wrapper {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 300px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 15px;
+}
+
+.confirm-btn {
+    background: green;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background: red;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    cursor: pointer;
+}

@@ -1,0 +1,74 @@
+﻿@page "/courses/create"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>Course</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="Course" OnValidSubmit="AddCourse" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="coursename" class="form-label">CourseName:</label> 
+                <InputText id="coursename" @bind-Value="Course.CourseName" class="form-control" /> 
+                <ValidationMessage For="() => Course.CourseName" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="courseprice" class="form-label">CoursePrice:</label> 
+                <InputNumber id="courseprice" @bind-Value="Course.CoursePrice" class="form-control" /> 
+                <ValidationMessage For="() => Course.CoursePrice" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="courseduration" class="form-label">CourseDuration:</label> 
+                <InputText id="courseduration" @bind-Value="Course.CourseDuration" class="form-control" /> 
+                <ValidationMessage For="() => Course.CourseDuration" class="text-danger" /> 
+            </div>   
+            <div class="mb-3">
+                <label for="completionpercentage" class="form-label">CompletionPercentage:</label>
+                <InputNumber id="completionpercentage" @bind-Value="Course.CompletionPercentage" class="form-control" />
+                <ValidationMessage For="() => Course.CompletionPercentage" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="useraccid" class="form-label">UserAccId:</label> 
+                <InputNumber id="useraccid" @bind-Value="Course.UserAccId" class="form-control" /> 
+                <ValidationMessage For="() => Course.UserAccId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="coursedatabaseid" class="form-label">CourseDatabaseId:</label> 
+                <InputNumber id="coursedatabaseid" @bind-Value="Course.CourseDatabaseId" class="form-control" /> 
+                <ValidationMessage For="() => Course.CourseDatabaseId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="scoreid" class="form-label">ScoreId:</label> 
+                <InputNumber id="scoreid" @bind-Value="Course.ScoreId" class="form-control" /> 
+                <ValidationMessage For="() => Course.ScoreId" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/courses">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private Course Course { get; set; } = new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddCourse()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Course.Add(Course);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/courses");
+    }
+}

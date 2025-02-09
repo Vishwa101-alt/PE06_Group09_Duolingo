@@ -1,0 +1,52 @@
+﻿@page "/useraccs/details"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>UserAcc</h2>
+    <hr />
+    @if (useracc is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Username</dt>
+            <dd class="col-sm-10">@useracc.Username</dd>
+            <dt class="col-sm-2">Password</dt>
+            <dd class="col-sm-10">@useracc.Password</dd>
+            <dt class="col-sm-2">Email</dt>
+            <dd class="col-sm-10">@useracc.Email</dd>
+            <dt class="col-sm-2">UserProfileId</dt>
+            <dd class="col-sm-10">@useracc.UserProfileId</dd>
+        </dl>
+        <div>
+            <a href="@($"/useraccs/edit?useraccid={useracc.UserAccId}")">Edit</a> |
+            <a href="@($"/useraccs")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private UserAcc? useracc;
+
+    [SupplyParameterFromQuery]
+    private int UserAccId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        useracc = await context.UserAcc.FirstOrDefaultAsync(m => m.UserAccId == UserAccId);
+
+        if (useracc is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

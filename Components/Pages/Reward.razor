@@ -1,0 +1,150 @@
+﻿@page "/reward"
+
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@inject ProtectedLocalStorage ProtectedLocalStorage
+@inject IJSRuntime JSRuntime
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@if (isAuthenticated)
+{
+	<div class="reward-wrapper">
+		<label style="font-size: 14px; align-self: end; margin-right: 20px; color: grey;">Current Point: @currentPoint</label>
+		<h1>Redeem Rewards</h1>
+		<div class="reward">
+			@foreach (var reward in rewardShops)
+			{
+				int pointCost = 0;
+				int.TryParse(reward.PointCost?.Replace("points", "").Trim(), out pointCost);
+
+				<div class="reward-item">
+					<h3>@reward.RewardType</h3>
+					<label>Cost: @reward.PointCost</label>
+					<button @onclick="() => OpenRedeemPopup(reward, pointCost)" disabled="@(currentPoint < pointCost)">Redeem</button>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+@if (showRedeemPopup)
+{
+	<div class="modal-overlay">
+		<div class="modal-wrapper">
+			<h3>Confirm Redemption</h3>
+			<p>Are you sure you want to redeem <strong>@selectedReward?.RewardType</strong> for <strong>@selectedPointCost</strong> points?</p>
+			<div class="modal-buttons">
+				<button class="confirm-btn" @onclick="ConfirmRedemption">Yes, Redeem</button>
+				<button class="cancel-btn" @onclick="CloseRedeemPopup">Cancel</button>
+			</div>
+		</div>
+	</div>
+}
+
+@code {
+	private List<RewardShop> rewardShops = new();
+	private int UserID = 0;
+	private bool isAuthenticated = false;
+	private int currentPoint = 0;
+	private bool showRedeemPopup = false;
+	private RewardShop? selectedReward;
+	private int selectedPointCost;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		try
+		{
+			if (firstRender)
+			{
+				var result = await ProtectedLocalStorage.GetAsync<int>("user-id");
+				UserID = result.Success ? result.Value : 0;
+				if (UserID > 0)
+				{
+					using var context = DbFactory.CreateDbContext();
+					UserAcc? userAcc = await context.UserAcc.FirstOrDefaultAsync(m => m.UserAccId == UserID);
+					if (userAcc is not null)
+					{
+						isAuthenticated = true;
+						UserProfile? userProfile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == userAcc.UserProfileId);
+						if (userProfile is not null)
+						{
+							currentPoint = userProfile.CurrentPoints ?? 0;
+						}
+						StateHasChanged();
+					}
+					else
+					{
+						await ProtectedLocalStorage.DeleteAsync("user-id");
+						await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+						NavigationManager.NavigateTo("/signin");
+					}
+				}
+				else
+				{
+					await ProtectedLocalStorage.DeleteAsync("user-id");
+					await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+					NavigationManager.NavigateTo("/signin");
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Unexpected error: {ex.Message}");
+			await ProtectedLocalStorage.DeleteAsync("user-id");
+			await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+			NavigationManager.NavigateTo("/signin");
+		}
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		using var context = DbFactory.CreateDbContext();
+		rewardShops = await context.RewardShop.ToListAsync();
+	}
+
+	private void OpenRedeemPopup(RewardShop reward, int pointCost)
+	{
+		selectedReward = reward;
+		selectedPointCost = pointCost;
+		showRedeemPopup = true;
+		StateHasChanged();
+	}
+
+	private void CloseRedeemPopup()
+	{
+		showRedeemPopup = false;
+		StateHasChanged();
+	}
+
+	private async Task ConfirmRedemption()
+	{
+		if (selectedReward is not null && currentPoint >= selectedPointCost)
+		{
+			using var context = DbFactory.CreateDbContext();
+
+			var userAcc = await context.UserAcc.FirstOrDefaultAsync(u => u.UserAccId == UserID);
+			if (userAcc is not null)
+			{
+				var userProfile = await context.UserProfile.FirstOrDefaultAsync(up => up.UserProfileId == userAcc.UserProfileId);
+				if (userProfile is not null && userProfile.CurrentPoints >= selectedPointCost)
+				{
+					userProfile.CurrentPoints -= selectedPointCost;
+					await context.SaveChangesAsync();
+
+					currentPoint = userProfile.CurrentPoints ?? 0;
+					await JSRuntime.InvokeAsync<Task>("alert", "Redemption successful!");
+				}
+				else
+				{
+					await JSRuntime.InvokeAsync<Task>("alert", "Not enough points.");
+				}
+			}
+		}
+
+		showRedeemPopup = false;
+		StateHasChanged();
+	}
+}

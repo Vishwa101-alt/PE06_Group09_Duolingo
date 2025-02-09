@@ -1,0 +1,104 @@
+﻿@page "/useraccs/edit"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>UserAcc</h2>
+<hr />
+@if (UserAcc is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="UserAcc" OnValidSubmit="UpdateUserAcc" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="UserAcc.UserAccId" value="@UserAcc.UserAccId" />
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username:</label>
+                    <InputText id="username" @bind-Value="UserAcc.Username" class="form-control" />
+                    <ValidationMessage For="() => UserAcc.Username" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password:</label>
+                    <InputText id="password" @bind-Value="UserAcc.Password" class="form-control" />
+                    <ValidationMessage For="() => UserAcc.Password" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email:</label>
+                    <InputText id="email" @bind-Value="UserAcc.Email" class="form-control" />
+                    <ValidationMessage For="() => UserAcc.Email" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="userprofileid" class="form-label">UserProfileId:</label>
+                    <InputNumber id="userprofileid" @bind-Value="UserAcc.UserProfileId" class="form-control" />
+                    <ValidationMessage For="() => UserAcc.UserProfileId" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/useraccs">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int UserAccId { get; set; }
+
+    [SupplyParameterFromForm]
+    private UserAcc? UserAcc { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        UserAcc ??= await context.UserAcc.FirstOrDefaultAsync(m => m.UserAccId == UserAccId);
+
+        if (UserAcc is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdateUserAcc()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(UserAcc!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!UserAccExists(UserAcc!.UserAccId))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/useraccs");
+    }
+
+    private bool UserAccExists(int useraccid)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.UserAcc.Any(e => e.UserAccId == useraccid);
+    }
+}

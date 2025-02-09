@@ -1,0 +1,127 @@
+﻿@page "/hindiquestionnaire"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@inject ProtectedLocalStorage ProtectedLocalStorage
+@inject IJSRuntime JSRuntime
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@if (currentQuestionIndex < storeItems.Count)
+{
+    var currentQuestion = storeItems[currentQuestionIndex];
+    <div class="questionnaire-container">
+        <div class="points-display">
+            <span class="points-label">Current Points:</span>
+            <span class="points-value">@currentPoint</span>
+        </div>
+
+        <div class="question-card">
+            <!-- Displaying Question Number -->
+            <div class="question-number">
+                <span>Question @(@currentQuestionIndex + 1) of @storeItems.Count</span>
+            </div>
+            <h4 class="question-text">@currentQuestion.Questions</h4>
+            <div class="options-container">
+                <button class="option-button" @onclick="() => AnswerQuestion(currentQuestion, 1)">@currentQuestion.MultipleChoice1</button>
+                <button class="option-button" @onclick="() => AnswerQuestion(currentQuestion, 2)">@currentQuestion.MultipleChoice2</button>
+                <button class="option-button" @onclick="() => AnswerQuestion(currentQuestion, 3)">@currentQuestion.MultipleChoice3</button>
+                <button class="option-button" @onclick="() => AnswerQuestion(currentQuestion, 4)">@currentQuestion.MultipleChoice4</button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <p>You've completed the questionnaire!</p>
+    <p>Your Score: @correctAnswers out of @storeItems.Count questions correct.</p>
+    <p>Total Points: @currentPoint</p>
+}
+
+@code {
+    private List<StoreItem> storeItems = new();
+    private int UserID = 0;
+    private bool isAuthenticated = false;
+    private int currentPoint = 0;
+    private int currentQuestionIndex = 0;
+    private int correctAnswers = 0; // Track correct answers
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var result = await ProtectedLocalStorage.GetAsync<int>("user-id");
+            UserID = result.Success ? result.Value : 0;
+
+            if (UserID > 0)
+            {
+                using var context = DbFactory.CreateDbContext();
+                UserAcc? userAcc = await context.UserAcc.FirstOrDefaultAsync(m => m.UserAccId == UserID);
+                if (userAcc is not null)
+                {
+                    isAuthenticated = true;
+                    UserProfile? userProfile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == userAcc.UserProfileId);
+                    if (userProfile is not null)
+                    {
+                        currentPoint = userProfile.CurrentPoints ?? 0;
+                    }
+                    StateHasChanged();
+                }
+                else
+                {
+                    await HandleUnauthorizedAccess();
+                }
+            }
+            else
+            {
+                await HandleUnauthorizedAccess();
+            }
+        }
+    }
+
+    private async Task HandleUnauthorizedAccess()
+    {
+        await ProtectedLocalStorage.DeleteAsync("user-id");
+        await JSRuntime.InvokeAsync<Task>("alert", "Unauthorized Access!");
+        NavigationManager.NavigateTo("/signin");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        storeItems = await context.StoreItem
+            .Where(item => item.CourseDatabaseId == 4) // Assuming CourseDatabaseId 1 is for English
+            .ToListAsync();
+    }
+
+    private async Task AnswerQuestion(StoreItem item, int selectedOption)
+    {
+        if (selectedOption == item.Answer)
+        {
+            correctAnswers++; // Increment correct answers count
+            using var context = DbFactory.CreateDbContext();
+            var userAcc = await context.UserAcc.FirstOrDefaultAsync(u => u.UserAccId == UserID);
+            if (userAcc is not null)
+            {
+                var userProfile = await context.UserProfile.FirstOrDefaultAsync(up => up.UserProfileId == userAcc.UserProfileId);
+                if (userProfile is not null)
+                {
+                    userProfile.CurrentPoints += 20; // Award 20 points for each correct answer
+                    await context.SaveChangesAsync();
+                    currentPoint = userProfile.CurrentPoints ?? 0;
+                    await JSRuntime.InvokeAsync<Task>("alert", "Correct answer! Points awarded.");
+                }
+            }
+        }
+        else
+        {
+            await JSRuntime.InvokeAsync<Task>("alert", "Incorrect answer. Try again!");
+        }
+
+        // Move to the next question
+        currentQuestionIndex++;
+        StateHasChanged();
+    }
+}
+

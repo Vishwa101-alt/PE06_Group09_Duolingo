@@ -1,0 +1,58 @@
+﻿@page "/courses/details"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>Course</h2>
+    <hr />
+    @if (course is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">CourseName</dt>
+            <dd class="col-sm-10">@course.CourseName</dd>
+            <dt class="col-sm-2">CoursePrice</dt>
+            <dd class="col-sm-10">@course.CoursePrice</dd>
+            <dt class="col-sm-2">CourseDuration</dt>
+            <dd class="col-sm-10">@course.CourseDuration</dd>
+            <dt class="col-sm-2">CompletionPercentage</dt>
+            <dd class="col-sm-10">@course.CompletionPercentage</dd>
+            <dt class="col-sm-2">UserAccId</dt>
+            <dd class="col-sm-10">@course.UserAccId</dd>
+            <dt class="col-sm-2">CourseDatabaseId</dt>
+            <dd class="col-sm-10">@course.CourseDatabaseId</dd>
+            <dt class="col-sm-2">ScoreId</dt>
+            <dd class="col-sm-10">@course.ScoreId</dd>
+        </dl>
+        <div>
+            <a href="@($"/courses/edit?courseid={course.CourseId}")">Edit</a> |
+            <a href="@($"/courses")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private Course? course;
+
+    [SupplyParameterFromQuery]
+    private int CourseId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        course = await context.Course.FirstOrDefaultAsync(m => m.CourseId == CourseId);
+
+        if (course is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

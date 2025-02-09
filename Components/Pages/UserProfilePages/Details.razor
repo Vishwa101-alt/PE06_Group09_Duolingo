@@ -1,0 +1,52 @@
+﻿@page "/userprofiles/details"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>UserProfile</h2>
+    <hr />
+    @if (userprofile is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Status</dt>
+            <dd class="col-sm-10">@userprofile.Status</dd>
+            <dt class="col-sm-2">CurrentPoints</dt>
+            <dd class="col-sm-10">@userprofile.CurrentPoints</dd>
+            <dt class="col-sm-2">RewardId</dt>
+            <dd class="col-sm-10">@userprofile.RewardId</dd>
+            <dt class="col-sm-2">CourseId</dt>
+            <dd class="col-sm-10">@userprofile.CourseId</dd>
+        </dl>
+        <div>
+            <a href="@($"/userprofiles/edit?userprofileid={userprofile.UserProfileId}")">Edit</a> |
+            <a href="@($"/userprofiles")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private UserProfile? userprofile;
+
+    [SupplyParameterFromQuery]
+    private int UserProfileId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        userprofile = await context.UserProfile.FirstOrDefaultAsync(m => m.UserProfileId == UserProfileId);
+
+        if (userprofile is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

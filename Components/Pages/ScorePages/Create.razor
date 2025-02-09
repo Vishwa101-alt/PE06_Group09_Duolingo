@@ -1,0 +1,54 @@
+﻿@page "/scores/create"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>Score</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="Score" OnValidSubmit="AddScore" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="pointsawarded" class="form-label">PointsAwarded:</label> 
+                <InputNumber id="pointsawarded" @bind-Value="Score.PointsAwarded" class="form-control" /> 
+                <ValidationMessage For="() => Score.PointsAwarded" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="storeid" class="form-label">StoreId:</label> 
+                <InputNumber id="storeid" @bind-Value="Score.StoreId" class="form-control" /> 
+                <ValidationMessage For="() => Score.StoreId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="userprofileid" class="form-label">UserProfileId:</label> 
+                <InputNumber id="userprofileid" @bind-Value="Score.UserProfileId" class="form-control" /> 
+                <ValidationMessage For="() => Score.UserProfileId" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/scores">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private Score Score { get; set; } = new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddScore()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Score.Add(Score);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/scores");
+    }
+}

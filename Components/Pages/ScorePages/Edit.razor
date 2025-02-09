@@ -1,0 +1,99 @@
+﻿@page "/scores/edit"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>Score</h2>
+<hr />
+@if (Score is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="Score" OnValidSubmit="UpdateScore" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="Score.ScoreId" value="@Score.ScoreId" />
+                <div class="mb-3">
+                    <label for="pointsawarded" class="form-label">PointsAwarded:</label>
+                    <InputNumber id="pointsawarded" @bind-Value="Score.PointsAwarded" class="form-control" />
+                    <ValidationMessage For="() => Score.PointsAwarded" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="storeid" class="form-label">StoreId:</label>
+                    <InputNumber id="storeid" @bind-Value="Score.StoreId" class="form-control" />
+                    <ValidationMessage For="() => Score.StoreId" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="userprofileid" class="form-label">UserProfileId:</label>
+                    <InputNumber id="userprofileid" @bind-Value="Score.UserProfileId" class="form-control" />
+                    <ValidationMessage For="() => Score.UserProfileId" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/scores">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int ScoreId { get; set; }
+
+    [SupplyParameterFromForm]
+    private Score? Score { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Score ??= await context.Score.FirstOrDefaultAsync(m => m.ScoreId == ScoreId);
+
+        if (Score is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdateScore()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(Score!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!ScoreExists(Score!.ScoreId))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/scores");
+    }
+
+    private bool ScoreExists(int scoreid)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Score.Any(e => e.ScoreId == scoreid);
+    }
+}

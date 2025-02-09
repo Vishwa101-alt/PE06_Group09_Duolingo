@@ -1,0 +1,74 @@
+﻿@page "/storeitems/create"
+@using Microsoft.EntityFrameworkCore
+@using FSDProject.Domain
+@inject IDbContextFactory<FSDProject.Data.FSDProjectContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>StoreItem</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="StoreItem" OnValidSubmit="AddStoreItem" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="mb-3">
+                <label for="questions" class="form-label">Questions:</label>
+                <InputText id="questions" @bind-Value="StoreItem.Questions" class="form-control" />
+                <ValidationMessage For="() => StoreItem.Questions" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="multiplechoice1" class="form-label">MultipleChoice1:</label>
+                <InputText id="multiplechoice1" @bind-Value="StoreItem.MultipleChoice1" class="form-control" />
+                <ValidationMessage For="() => StoreItem.MultipleChoice1" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="multiplechoice2" class="form-label">MultipleChoice2:</label>
+                <InputText id="multiplechoice2" @bind-Value="StoreItem.MultipleChoice2" class="form-control" />
+                <ValidationMessage For="() => StoreItem.MultipleChoice2" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="multiplechoice3" class="form-label">MultipleChoice3:</label>
+                <InputText id="multiplechoice3" @bind-Value="StoreItem.MultipleChoice3" class="form-control" />
+                <ValidationMessage For="() => StoreItem.MultipleChoice3" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="multiplechoice4" class="form-label">MultipleChoice4:</label>
+                <InputText id="multiplechoice4" @bind-Value="StoreItem.MultipleChoice4" class="form-control" />
+                <ValidationMessage For="() => StoreItem.MultipleChoice4" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="answer" class="form-label">Answer:</label>
+                <InputNumber id="answer" @bind-Value="StoreItem.Answer" class="form-control" />
+                <ValidationMessage For="() => StoreItem.Answer" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="coursedatabaseid" class="form-label">CourseDatabaseId:</label>
+                <InputNumber id="coursedatabaseid" @bind-Value="StoreItem.CourseDatabaseId" class="form-control" />
+                <ValidationMessage For="() => StoreItem.CourseDatabaseId" class="text-danger" />
+            </div>
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/storeitems">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private StoreItem StoreItem { get; set; } = new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddStoreItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.StoreItem.Add(StoreItem);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/storeitems");
+    }
+}
